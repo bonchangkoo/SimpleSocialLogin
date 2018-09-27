@@ -24,7 +24,7 @@ class LoginResult {
         return "LoginResult(type=$type, status=$status, id='$id', name='$name', email='$email', nickname='$nickname')"
     }
 
-    class OAuthInfo(var accessToken: String = "", private var refreshToken: String = "", private var expiresAt: Long = -1L) {
+    class OAuthInfo(var accessToken: String = "", var refreshToken: String = "", private var expiresAt: Long = -1L) {
 
         override fun toString(): String {
             return "LoginResult.OAuthIOnfo(accessToken=$accessToken, refreshToken=$refreshToken, expiresAt=$expiresAt)"

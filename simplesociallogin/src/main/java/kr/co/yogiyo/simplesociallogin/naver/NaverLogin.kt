@@ -2,6 +2,7 @@ package kr.co.yogiyo.simplesociallogin.naver
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import com.google.gson.Gson
 import com.google.gson.JsonObject
@@ -17,8 +18,20 @@ import kr.co.yogiyo.simplesociallogin.model.LoginResult
 import kr.co.yogiyo.simplesociallogin.model.SocialType
 
 class NaverLogin(activity: Activity) : SocialLogin(activity) {
+    private var requestMe = false
+
     companion object {
         private const val requestMeUrl = "https://openapi.naver.com/v1/nid/me"
+
+        fun refreshAccessToken(context: Context?): String  {
+            var accessToken = ""
+            try {
+                accessToken = OAuthLogin.getInstance().refreshAccessToken(context)
+            } catch (e: java.lang.Exception) {
+                // Do nothing
+            }
+            return accessToken
+        }
     }
 
     private val compositeDisposable: CompositeDisposable by lazy {
@@ -37,18 +50,24 @@ class NaverLogin(activity: Activity) : SocialLogin(activity) {
         oAuthLoginInstance.startOauthLoginActivity(activity, NaverLoginHandler())
     }
 
+    fun startWithRequestMe() {
+        requestMe = true
+        start()
+    }
+
     override fun release() {
         compositeDisposable.clear()
     }
 
     override fun logout() {
-        OAuthLogin.getInstance().logout(activity)
+        oAuthLoginInstance.logout(activity)
 
     }
 
-    fun logoutAndDeleteToken(): Boolean = OAuthLogin.getInstance().logoutAndDeleteToken(activity)
+    fun logoutAndDeleteToken(): Boolean = oAuthLoginInstance.logoutAndDeleteToken(activity)
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        // Do nothing
     }
 
     @SuppressLint("HandlerLeak")
@@ -57,8 +76,32 @@ class NaverLogin(activity: Activity) : SocialLogin(activity) {
         override fun run(success: Boolean) {
             if (success) {
                 val accessToken = oAuthLoginInstance.getAccessToken(activity)
-                val authHeader = "Bearer $accessToken"
-                requestMe(authHeader)
+                if (accessToken.isEmpty()) {
+                    onLoginFail(SocialType.NAVER)
+
+                } else {
+                    if (requestMe) {
+                        requestMe("Bearer $accessToken")
+
+                    } else {
+                        val loginResult = LoginResult().apply {
+                            try {
+                                this.oAuthInfo = LoginResult.OAuthInfo(
+                                        oAuthLoginInstance.getAccessToken(activity),
+                                        oAuthLoginInstance.getRefreshToken(activity),
+                                        oAuthLoginInstance.getExpiresAt(activity)
+                                )
+                            } catch (exception: Exception) {
+                                onLoginFail(SocialType.NAVER)
+                            }
+
+                            this.type = SocialType.NAVER
+                            this.status = LoginResult.STATUS_SUCCESS
+                        }
+
+                        onLoginSuccess(loginResult)
+                    }
+                }
             }
         }
     }
@@ -103,10 +146,7 @@ class NaverLogin(activity: Activity) : SocialLogin(activity) {
                         this.status = LoginResult.STATUS_SUCCESS
                     }
 
-                    when {
-                        loginResult.oAuthInfo.accessToken.isEmpty() -> onLoginFail(SocialType.NAVER)
-                        else -> onLoginSuccess(loginResult)
-                    }
+                    onLoginSuccess(loginResult)
 
                 }) {
                     onLoginFail(SocialType.NAVER)
