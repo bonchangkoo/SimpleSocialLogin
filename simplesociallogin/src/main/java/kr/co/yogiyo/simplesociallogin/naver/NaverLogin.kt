@@ -47,6 +47,7 @@ class NaverLogin(activity: Activity) : SocialLogin(activity) {
 
         val config = getConfig(SocialType.NAVER) as NaverConfig
         oAuthLoginInstance.init(activity, config.clientId, config.clientSecret, config.clientName)
+        oAuthLoginInstance.logout(activity)
         oAuthLoginInstance.startOauthLoginActivity(activity, NaverLoginHandler())
     }
 
