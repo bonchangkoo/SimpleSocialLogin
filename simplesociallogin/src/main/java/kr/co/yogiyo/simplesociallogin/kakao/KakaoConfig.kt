@@ -1,23 +1,20 @@
 package kr.co.yogiyo.simplesociallogin.kakao
 
+import kr.co.yogiyo.simplesociallogin.internal.impl.ConfigFunction
 import kr.co.yogiyo.simplesociallogin.model.SocialConfig
 import java.util.ArrayList
 
-class KakaoConfig constructor(val requestOptions: ArrayList<String>) : SocialConfig() {
-    class Builder {
-        private var isRequireEmail = false
+class KakaoConfig : SocialConfig() {
+    var requireEmail = false
+    var requireAgeRange = false
+    var requireBirthday = false
+    var requireGender = false
 
-        fun setRequireEmail(): Builder {
-            isRequireEmail = true
-            return this
-        }
-
-        fun build(): KakaoConfig {
-            val requestOptions = ArrayList<String>()
-            requestOptions.add("properties.nickname")
-            requestOptions.add("properties.profile_image")
-
-            return KakaoConfig(requestOptions)
+    companion object {
+        internal fun apply(setup: ConfigFunction<KakaoConfig>? = null): KakaoConfig {
+            val config = KakaoConfig()
+            setup?.invoke(config)
+            return config
         }
     }
 }

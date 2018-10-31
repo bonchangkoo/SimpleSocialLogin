@@ -1,4 +1,4 @@
-package kr.co.yogiyo.simplesociallogin.helper
+package kr.co.yogiyo.simplesociallogin.internal
 
 import android.util.Log
 import io.reactivex.Single
@@ -26,6 +26,6 @@ object HttpRequestHelper {
 
     @JvmStatic
     fun createRequest(url: String, authorization: String): Single<String> {
-        return Single.create { it.onSuccess(HttpRequestHelper.getResponse(url, authorization)) }
+        return Single.create { it.onSuccess(getResponse(url, authorization)) }
     }
 }

@@ -1,5 +1,7 @@
 package kr.co.yogiyo.simplesociallogin.model
 
-enum class SocialType {
+import java.io.Serializable
+
+enum class PlatformType : Serializable {
     KAKAO, NAVER, NONE
 }

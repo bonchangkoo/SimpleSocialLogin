@@ -4,64 +4,28 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.nhn.android.naverlogin.OAuthLogin
 import com.nhn.android.naverlogin.OAuthLoginDefine
 import com.nhn.android.naverlogin.OAuthLoginHandler
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.schedulers.Schedulers
+import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin
+import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin.getPlatformConfig
 import kr.co.yogiyo.simplesociallogin.base.SocialLogin
-import kr.co.yogiyo.simplesociallogin.helper.HttpRequestHelper
-import kr.co.yogiyo.simplesociallogin.listener.RefreshTokenCallback
-import kr.co.yogiyo.simplesociallogin.model.LoginResult
-import kr.co.yogiyo.simplesociallogin.model.SocialType
+import kr.co.yogiyo.simplesociallogin.internal.exception.LoginFailedException
+import kr.co.yogiyo.simplesociallogin.internal.impl.RefreshTokenCallback
+import kr.co.yogiyo.simplesociallogin.model.LoginResultItem
+import kr.co.yogiyo.simplesociallogin.model.PlatformType
 
-class NaverLogin(activity: Activity) : SocialLogin(activity) {
-    private var requestMe = false
-
-    companion object {
-        private const val requestMeUrl = "https://openapi.naver.com/v1/nid/me"
-
-        fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback)  {
-            try {
-                val accessToken = OAuthLogin.getInstance().refreshAccessToken(context)
-                if (!accessToken.isNullOrEmpty()) {
-                    callback.onRefreshSuccess(accessToken)
-                } else {
-                    callback.onRefreshFailure()
-                }
-            } catch (e: java.lang.Exception) {
-                callback.onRefreshFailure()
-            }
-        }
-    }
-
-    private val compositeDisposable: CompositeDisposable by lazy {
-        CompositeDisposable()
-    }
-
+class NaverLogin constructor(activity: Activity) : SocialLogin(activity) {
     private val oAuthLoginInstance: OAuthLogin by lazy {
         OAuthLogin.getInstance()
     }
 
-    override fun start() {
+    override fun login() {
         OAuthLoginDefine.MARKET_LINK_WORKING = false
 
-        val config = getConfig(SocialType.NAVER) as NaverConfig
-        oAuthLoginInstance.init(activity, config.clientId, config.clientSecret, config.clientName)
-        oAuthLoginInstance.logout(activity)
+        val config = getPlatformConfig(PlatformType.NAVER) as NaverConfig
+        oAuthLoginInstance.init(activity, config.authClientId, config.authClientSecret, config.clientName)
         oAuthLoginInstance.startOauthLoginActivity(activity, NaverLoginHandler())
-    }
-
-    fun startWithRequestMe() {
-        requestMe = true
-        start()
-    }
-
-    override fun release() {
-        compositeDisposable.clear()
     }
 
     override fun logout() {
@@ -70,6 +34,19 @@ class NaverLogin(activity: Activity) : SocialLogin(activity) {
     }
 
     override fun unlinkApp(): Boolean = oAuthLoginInstance.logoutAndDeleteToken(activity)
+
+    override fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback)  {
+        try {
+            val accessToken = oAuthLoginInstance.refreshAccessToken(context)
+            if (!accessToken.isNullOrEmpty()) {
+                callback.onRefreshSuccess(accessToken)
+            } else {
+                callback.onRefreshFailure()
+            }
+        } catch (e: java.lang.Exception) {
+            callback.onRefreshFailure()
+        }
+    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         // Do nothing
@@ -82,81 +59,27 @@ class NaverLogin(activity: Activity) : SocialLogin(activity) {
             if (success) {
                 val accessToken = oAuthLoginInstance.getAccessToken(activity)
                 if (accessToken.isEmpty()) {
-                    onLoginFail(SocialType.NAVER)
+                    callbackAsFail(LoginFailedException(SimpleSocialLogin.EXCEPTION_FAILED_RESULT))
 
                 } else {
-                    if (requestMe) {
-                        requestMe("Bearer $accessToken")
-
-                    } else {
-                        val loginResult = LoginResult().apply {
-                            try {
-                                this.oAuthInfo = LoginResult.OAuthInfo(
-                                        oAuthLoginInstance.getAccessToken(activity),
-                                        oAuthLoginInstance.getRefreshToken(activity),
-                                        oAuthLoginInstance.getExpiresAt(activity)
-                                )
-                            } catch (exception: Exception) {
-                                onLoginFail(SocialType.NAVER)
-                            }
-
-                            this.type = SocialType.NAVER
-                            this.status = LoginResult.STATUS_SUCCESS
-                        }
-
-                        onLoginSuccess(loginResult)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun requestMe(authHeader: String) {
-        val disposable = HttpRequestHelper.createRequest(requestMeUrl, authHeader)
-                .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe({
-                    val jsonObject = Gson().fromJson(it, JsonObject::class.java)
-                    val response = jsonObject.getAsJsonObject("response")
-
-                    if (response == null) {
-                        onLoginFail(SocialType.NAVER)
-                        return@subscribe
-                    }
-
-                    val loginResult = LoginResult().apply {
+                    val loginResultItem = LoginResultItem().apply {
                         try {
-                            this.oAuthInfo = LoginResult.OAuthInfo(
+                            this.oAuthInfo = LoginResultItem.OAuthInfo(
                                     oAuthLoginInstance.getAccessToken(activity),
                                     oAuthLoginInstance.getRefreshToken(activity),
                                     oAuthLoginInstance.getExpiresAt(activity)
                             )
                         } catch (exception: Exception) {
-                            onLoginFail(SocialType.NAVER)
+                            callbackAsFail(LoginFailedException(SimpleSocialLogin.EXCEPTION_FAILED_RESULT))
                         }
-                        this.id = response.get("id").asString
-                        this.name = ""
-                        if (response.has("name")) {
-                            this.name = response.get("name").asString
-                        }
-                        this.email = ""
-                        if (response.has("email")) {
-                            this.email = response.get("email").asString
-                        }
-                        this.nickname = ""
-                        if (response.has("nickname")) {
-                            this.nickname = response.get("nickname").asString
-                        }
-                        this.type = SocialType.NAVER
-                        this.status = LoginResult.STATUS_SUCCESS
+
+                        this.platformType = PlatformType.NAVER
+                        this.status = LoginResultItem.STATUS_SUCCESS
                     }
 
-                    onLoginSuccess(loginResult)
-
-                }) {
-                    onLoginFail(SocialType.NAVER)
+                    callbackAsSuccess(loginResultItem)
                 }
-
-        compositeDisposable.add(disposable)
+            }
+        }
     }
 }
