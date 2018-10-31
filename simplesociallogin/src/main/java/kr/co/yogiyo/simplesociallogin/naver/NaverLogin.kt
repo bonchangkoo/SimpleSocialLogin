@@ -14,6 +14,7 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import kr.co.yogiyo.simplesociallogin.base.SocialLogin
 import kr.co.yogiyo.simplesociallogin.helper.HttpRequestHelper
+import kr.co.yogiyo.simplesociallogin.listener.RefreshTokenCallback
 import kr.co.yogiyo.simplesociallogin.model.LoginResult
 import kr.co.yogiyo.simplesociallogin.model.SocialType
 
@@ -23,14 +24,17 @@ class NaverLogin(activity: Activity) : SocialLogin(activity) {
     companion object {
         private const val requestMeUrl = "https://openapi.naver.com/v1/nid/me"
 
-        fun refreshAccessToken(context: Context?): String  {
-            var accessToken = ""
+        fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback)  {
             try {
-                accessToken = OAuthLogin.getInstance().refreshAccessToken(context)
+                val accessToken = OAuthLogin.getInstance().refreshAccessToken(context)
+                if (!accessToken.isNullOrEmpty()) {
+                    callback.onRefreshSuccess(accessToken)
+                } else {
+                    callback.onRefreshFailure()
+                }
             } catch (e: java.lang.Exception) {
-                // Do nothing
+                callback.onRefreshFailure()
             }
-            return accessToken
         }
     }
 
@@ -65,7 +69,7 @@ class NaverLogin(activity: Activity) : SocialLogin(activity) {
 
     }
 
-    fun logoutAndDeleteToken(): Boolean = oAuthLoginInstance.logoutAndDeleteToken(activity)
+    override fun unlinkApp(): Boolean = oAuthLoginInstance.logoutAndDeleteToken(activity)
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         // Do nothing

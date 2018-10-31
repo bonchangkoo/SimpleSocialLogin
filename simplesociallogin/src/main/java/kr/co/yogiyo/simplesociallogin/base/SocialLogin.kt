@@ -2,13 +2,17 @@ package kr.co.yogiyo.simplesociallogin.base
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import com.kakao.auth.KakaoSDK
+import kr.co.yogiyo.simplesociallogin.kakao.KakaoLogin
 import kr.co.yogiyo.simplesociallogin.listener.LoginResultListener
 import kr.co.yogiyo.simplesociallogin.kakao.KakaoSDKAdapter
+import kr.co.yogiyo.simplesociallogin.listener.RefreshTokenCallback
 import kr.co.yogiyo.simplesociallogin.model.LoginResult
 import kr.co.yogiyo.simplesociallogin.model.SocialConfig
 import kr.co.yogiyo.simplesociallogin.model.SocialType
+import kr.co.yogiyo.simplesociallogin.naver.NaverLogin
 import java.lang.ref.WeakReference
 
 abstract class SocialLogin(activity: Activity) {
@@ -29,6 +33,8 @@ abstract class SocialLogin(activity: Activity) {
     abstract fun release()
 
     abstract fun logout()
+
+    abstract fun unlinkApp(): Boolean
 
     abstract fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?)
 
@@ -64,6 +70,15 @@ abstract class SocialLogin(activity: Activity) {
                 throw RuntimeException(String.format("There is no ${type.name} SocialConfig."))
             }
             return socialConfigMap[type]!!
+        }
+
+        @JvmStatic
+        fun refreshAccessToken(context: Context, socialType: String, callback: RefreshTokenCallback) {
+            if (socialType == SocialType.NAVER.name.toLowerCase()) {
+                NaverLogin.refreshAccessToken(context, callback)
+            } else if (socialType == SocialType.KAKAO.name.toLowerCase()) {
+                KakaoLogin.refreshAccessToken(callback)
+            }
         }
     }
 }
