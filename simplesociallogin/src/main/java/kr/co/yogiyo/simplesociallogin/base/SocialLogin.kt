@@ -14,9 +14,7 @@ abstract class SocialLogin constructor(activity: Activity) {
 
     internal var responseListener: OnResponseListener? = null
 
-    protected val kakaoSDKAdapter: KakaoSDKAdapter by lazy {
-        KakaoSDKAdapter(activity.applicationContext)
-    }
+    protected var kakaoSDKAdapter: KakaoSDKAdapter? = null
 
     protected val compositeDisposable = CompositeDisposable()
 

@@ -23,10 +23,11 @@ import kr.co.yogiyo.simplesociallogin.model.PlatformType
 import kr.co.yogiyo.simplesociallogin.model.SocialConfig
 import kr.co.yogiyo.simplesociallogin.naver.NaverLogin
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 object SimpleSocialLogin {
     private var configMap: MutableMap<PlatformType, SocialConfig> = HashMap()
-    private var moduleMap: WeakHashMap<PlatformType, SocialLogin> = WeakHashMap()
+    private var moduleMap: ConcurrentHashMap<PlatformType, SocialLogin> = ConcurrentHashMap()
     private var application: Application? by weak(null)
 
     const val EXCEPTION_FAILED_RESULT = "Failed to get results."
@@ -113,7 +114,10 @@ object SimpleSocialLogin {
     @JvmStatic
     @JvmOverloads
     fun result(activity: Activity? = null): Observable<LoginResultItem> {
-        if (moduleMap.isEmpty() && activity != null) initialize(activity)
+        if (activity != null) {
+
+            initialize(activity)
+        }
         return Observable.merge(moduleMap.values.map { SocialLoginObservable(it) })
     }
 
@@ -122,7 +126,9 @@ object SimpleSocialLogin {
      */
     @JvmOverloads
     fun result(callback: (LoginResultItem) -> Unit, fragmentActivity: FragmentActivity? = null) {
-        if (moduleMap.isEmpty() && fragmentActivity != null) initialize(fragmentActivity)
+        if (fragmentActivity != null) {
+            initialize(fragmentActivity)
+        }
 
         val listener = object : OnResponseListener {
             override fun onResultReceived(loginResultItem: LoginResultItem?, error: Throwable?) {

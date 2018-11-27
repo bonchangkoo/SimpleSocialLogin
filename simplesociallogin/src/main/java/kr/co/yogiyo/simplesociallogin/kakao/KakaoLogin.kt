@@ -7,9 +7,7 @@ import com.kakao.auth.*
 import com.kakao.auth.authorization.accesstoken.AccessToken
 import com.kakao.network.ErrorResult
 import com.kakao.usermgmt.UserManagement
-import com.kakao.usermgmt.callback.MeV2ResponseCallback
-import com.kakao.usermgmt.response.MeV2Response
-import com.kakao.util.OptionalBoolean
+import com.kakao.usermgmt.callback.UnLinkResponseCallback
 import com.kakao.util.exception.KakaoException
 import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin
 import kr.co.yogiyo.simplesociallogin.base.SocialLogin
@@ -18,20 +16,32 @@ import kr.co.yogiyo.simplesociallogin.internal.impl.RefreshTokenCallback
 import kr.co.yogiyo.simplesociallogin.model.LoginResultItem
 import kr.co.yogiyo.simplesociallogin.model.PlatformType
 
+
 class KakaoLogin(activity: Activity) : SocialLogin(activity) {
+
+    companion object {
+        const val EXTRA_ERROR_DESCRIPTION = "com.kakao.sdk.talk.error.description"
+        const val EXTRA_ERROR_TYPE = "com.kakao.sdk.talk.error.type"
+        const val PACKAGE_KAKAO_TALK = "com.kakao.talk"
+        const val PACKAGE_KAKAO_STORY = "com.kakao.story"
+    }
 
     private val sessionCallback: SessionCallback by lazy {
         SessionCallback()
     }
 
     override fun login() {
+        kakaoSDKAdapter = null
+
+        logout()
+
         checkSession()
 
         val session = Session.getCurrentSession()
 
         session.addCallback(sessionCallback)
         if (!session.checkAndImplicitOpen()) {
-            session.open(AuthType.KAKAO_LOGIN_ALL, activity)
+            session.open(AuthType.KAKAO_TALK, activity)
         }
     }
 
@@ -40,24 +50,44 @@ class KakaoLogin(activity: Activity) : SocialLogin(activity) {
         checkSession()
 
         Session.getCurrentSession().removeCallback(sessionCallback)
-
+        kakaoSDKAdapter = null
     }
 
     override fun logout() {
         checkSession()
 
         if (Session.getCurrentSession().checkAndImplicitOpen()) {
+            Session.getCurrentSession().appCache.clearAll()
+            Session.getCurrentSession().removeCallback(sessionCallback)
             Session.getCurrentSession().close()
         }
+
+        kakaoSDKAdapter = null
     }
 
     override fun unlinkApp(): Boolean {
-        logout()
+        checkSession()
 
-        return Session.getCurrentSession().isClosed
+        UserManagement.getInstance().requestUnlink(object : UnLinkResponseCallback() {
+            override fun onSessionClosed(errorResult: ErrorResult?) {
+                // Do nothing
+            }
+
+            override fun onNotSignedUp() {
+                // Do nothing
+            }
+
+            override fun onSuccess(result: Long?) {
+                logout()
+            }
+        })
+
+        return true
     }
 
     override fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback) {
+        checkSession()
+
         val refreshToken = Session.getCurrentSession().tokenInfo.refreshToken
         Session.getCurrentSession().accessTokenManager.refreshAccessToken(refreshToken, object : AccessTokenCallback() {
             override fun onAccessTokenReceived(accessToken: AccessToken?) {
@@ -76,13 +106,46 @@ class KakaoLogin(activity: Activity) : SocialLogin(activity) {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         checkSession()
-        Session.getCurrentSession().handleActivityResult(requestCode, resultCode, data)
+
+        var isKakaoInstalled = true
+        try {
+            activity?.packageManager?.getPackageInfo(PACKAGE_KAKAO_TALK, 0)
+            activity?.packageManager?.getPackageInfo(PACKAGE_KAKAO_STORY, 0)
+
+        } catch (e: Exception) {
+            isKakaoInstalled = false
+        }
+
+        try {
+            if (isKakaoInstalled) {
+                if (data != null && data.extras != null) {
+                    val bundle = data.extras!!
+                    val errorType = bundle.getString(EXTRA_ERROR_TYPE)
+                    val errorDes = bundle.getString(EXTRA_ERROR_DESCRIPTION)
+                    if (errorType != null && errorDes != null) {
+                        callbackAsFail(LoginFailedException(SimpleSocialLogin.EXCEPTION_FAILED_RESULT + " $errorDes"))
+                    } else {
+                        Session.getCurrentSession().handleActivityResult(requestCode, resultCode, data)
+                    }
+                } else {
+                    Session.getCurrentSession().handleActivityResult(requestCode, resultCode, data)
+                }
+
+            } else {
+                Session.getCurrentSession().handleActivityResult(requestCode, resultCode, data)
+            }
+        } catch (e: Exception) {
+            callbackAsFail(LoginFailedException(SimpleSocialLogin.EXCEPTION_FAILED_RESULT + " Unknown Error"))
+        }
     }
 
     private fun checkSession() {
         try {
             Session.getCurrentSession().checkAndImplicitOpen()
         } catch (e: Exception) {
+            if (kakaoSDKAdapter == null) {
+                kakaoSDKAdapter = KakaoSDKAdapter(activity!!.applicationContext)
+            }
             KakaoSDK.init(kakaoSDKAdapter)
         }
     }

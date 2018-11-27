@@ -8,6 +8,7 @@ import com.nhn.android.naverlogin.OAuthLogin
 import com.nhn.android.naverlogin.OAuthLoginDefine
 import com.nhn.android.naverlogin.OAuthLoginHandler
 import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin
+import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin.EXCEPTION_FAILED_RESULT
 import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin.getPlatformConfig
 import kr.co.yogiyo.simplesociallogin.base.SocialLogin
 import kr.co.yogiyo.simplesociallogin.internal.exception.LoginFailedException
@@ -79,6 +80,9 @@ class NaverLogin constructor(activity: Activity) : SocialLogin(activity) {
 
                     callbackAsSuccess(loginResultItem)
                 }
+
+            } else {
+                callbackAsFail(LoginFailedException(EXCEPTION_FAILED_RESULT))
             }
         }
     }
