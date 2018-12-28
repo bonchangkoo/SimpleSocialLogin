@@ -1,6 +1,7 @@
 package kr.co.yogiyo.simplesociallogin.kakao
 
 import android.app.Activity
+import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
 import com.kakao.auth.*
@@ -13,6 +14,7 @@ import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin
 import kr.co.yogiyo.simplesociallogin.base.SocialLogin
 import kr.co.yogiyo.simplesociallogin.internal.exception.LoginFailedException
 import kr.co.yogiyo.simplesociallogin.internal.impl.RefreshTokenCallback
+import kr.co.yogiyo.simplesociallogin.internal.impl.UnlinkAppCallback
 import kr.co.yogiyo.simplesociallogin.model.LoginResultItem
 import kr.co.yogiyo.simplesociallogin.model.PlatformType
 
@@ -65,24 +67,25 @@ class KakaoLogin(activity: Activity) : SocialLogin(activity) {
         kakaoSDKAdapter = null
     }
 
-    override fun unlinkApp(): Boolean {
+    override fun unlinkApp(callback: UnlinkAppCallback) {
         checkSession()
 
         UserManagement.getInstance().requestUnlink(object : UnLinkResponseCallback() {
             override fun onSessionClosed(errorResult: ErrorResult?) {
-                // Do nothing
+                logout()
+                callback.onUnlinkFailure()
             }
 
             override fun onNotSignedUp() {
-                // Do nothing
+                logout()
+                callback.onUnlinkFailure()
             }
 
             override fun onSuccess(result: Long?) {
                 logout()
+                callback.onUnlinkSuccess()
             }
         })
-
-        return true
     }
 
     override fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback) {
@@ -134,6 +137,7 @@ class KakaoLogin(activity: Activity) : SocialLogin(activity) {
             } else {
                 Session.getCurrentSession().handleActivityResult(requestCode, resultCode, data)
             }
+
         } catch (e: Exception) {
             callbackAsFail(LoginFailedException(SimpleSocialLogin.EXCEPTION_FAILED_RESULT + " Unknown Error"))
         }

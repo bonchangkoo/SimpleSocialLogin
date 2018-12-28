@@ -18,6 +18,7 @@ import kr.co.yogiyo.simplesociallogin.kakao.KakaoLogin
 import kr.co.yogiyo.simplesociallogin.kakao.KakaoSDKAdapter
 import kr.co.yogiyo.simplesociallogin.internal.impl.OnResponseListener
 import kr.co.yogiyo.simplesociallogin.internal.impl.RefreshTokenCallback
+import kr.co.yogiyo.simplesociallogin.internal.impl.UnlinkAppCallback
 import kr.co.yogiyo.simplesociallogin.model.LoginResultItem
 import kr.co.yogiyo.simplesociallogin.model.PlatformType
 import kr.co.yogiyo.simplesociallogin.model.SocialConfig
@@ -93,8 +94,8 @@ object SimpleSocialLogin {
     }
 
     @JvmStatic
-    fun unlinkApp(platformType: PlatformType): Boolean {
-        return moduleMap[platformType]?.unlinkApp() ?: false
+    fun unlinkApp(platformType: PlatformType, callback: UnlinkAppCallback) {
+        moduleMap[platformType]?.unlinkApp(callback) ?: callback.onUnlinkFailure()
     }
 
     /**
@@ -115,7 +116,6 @@ object SimpleSocialLogin {
     @JvmOverloads
     fun result(activity: Activity? = null): Observable<LoginResultItem> {
         if (activity != null) {
-
             initialize(activity)
         }
         return Observable.merge(moduleMap.values.map { SocialLoginObservable(it) })

@@ -13,6 +13,7 @@ import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin.getPlatformConfig
 import kr.co.yogiyo.simplesociallogin.base.SocialLogin
 import kr.co.yogiyo.simplesociallogin.internal.exception.LoginFailedException
 import kr.co.yogiyo.simplesociallogin.internal.impl.RefreshTokenCallback
+import kr.co.yogiyo.simplesociallogin.internal.impl.UnlinkAppCallback
 import kr.co.yogiyo.simplesociallogin.model.LoginResultItem
 import kr.co.yogiyo.simplesociallogin.model.PlatformType
 
@@ -34,7 +35,13 @@ class NaverLogin constructor(activity: Activity) : SocialLogin(activity) {
 
     }
 
-    override fun unlinkApp(): Boolean = oAuthLoginInstance.logoutAndDeleteToken(activity)
+    override fun unlinkApp(callback: UnlinkAppCallback) {
+        if (oAuthLoginInstance.logoutAndDeleteToken(activity)) {
+            callback.onUnlinkSuccess()
+        } else {
+            callback.onUnlinkFailure()
+        }
+    }
 
     override fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback)  {
         try {

@@ -7,6 +7,7 @@ import io.reactivex.disposables.CompositeDisposable
 import kr.co.yogiyo.simplesociallogin.internal.weak
 import kr.co.yogiyo.simplesociallogin.internal.impl.OnResponseListener
 import kr.co.yogiyo.simplesociallogin.internal.impl.RefreshTokenCallback
+import kr.co.yogiyo.simplesociallogin.internal.impl.UnlinkAppCallback
 import kr.co.yogiyo.simplesociallogin.kakao.KakaoSDKAdapter
 import kr.co.yogiyo.simplesociallogin.model.LoginResultItem
 
@@ -28,7 +29,7 @@ abstract class SocialLogin constructor(activity: Activity) {
 
     abstract fun login()
 
-    abstract fun unlinkApp(): Boolean
+    abstract fun unlinkApp(callback: UnlinkAppCallback)
 
     abstract fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback)
 
