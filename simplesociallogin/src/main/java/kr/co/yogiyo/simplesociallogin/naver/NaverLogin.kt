@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.support.annotation.WorkerThread
 import com.nhn.android.naverlogin.OAuthLogin
 import com.nhn.android.naverlogin.OAuthLoginDefine
 import com.nhn.android.naverlogin.OAuthLoginHandler
@@ -43,7 +44,8 @@ class NaverLogin constructor(activity: Activity) : SocialLogin(activity) {
         }
     }
 
-    override fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback)  {
+    @WorkerThread
+    override fun refreshAccessToken(context: Context?, callback: RefreshTokenCallback) {
         try {
             val accessToken = oAuthLoginInstance.refreshAccessToken(context)
             if (!accessToken.isNullOrEmpty()) {
@@ -65,7 +67,12 @@ class NaverLogin constructor(activity: Activity) : SocialLogin(activity) {
 
         override fun run(success: Boolean) {
             if (success) {
-                val accessToken = oAuthLoginInstance.getAccessToken(activity)
+                var accessToken = ""
+                try {
+                    accessToken = oAuthLoginInstance.getAccessToken(activity)
+                } catch (e: Exception) {
+                    // pass
+                }
                 if (accessToken.isEmpty()) {
                     callbackAsFail(LoginFailedException(SimpleSocialLogin.EXCEPTION_FAILED_RESULT))
 
