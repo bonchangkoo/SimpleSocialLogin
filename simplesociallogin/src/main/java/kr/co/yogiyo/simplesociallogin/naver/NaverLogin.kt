@@ -8,6 +8,8 @@ import android.support.annotation.WorkerThread
 import com.nhn.android.naverlogin.OAuthLogin
 import com.nhn.android.naverlogin.OAuthLoginDefine
 import com.nhn.android.naverlogin.OAuthLoginHandler
+import io.reactivex.Flowable
+import io.reactivex.schedulers.Schedulers
 import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin
 import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin.EXCEPTION_FAILED_RESULT
 import kr.co.yogiyo.simplesociallogin.SimpleSocialLogin.getPlatformConfig
@@ -32,8 +34,16 @@ class NaverLogin constructor(activity: Activity) : SocialLogin(activity) {
     }
 
     override fun logout() {
-        oAuthLoginInstance.logout(activity)
-
+        Flowable.just("")
+                .map {
+                    oAuthLoginInstance.logoutAndDeleteToken(activity)
+                }
+                .subscribeOn(Schedulers.io())
+                .subscribe({
+                    // Do nothing
+                },{
+                    // Do nothing
+                })
     }
 
     override fun unlinkApp(callback: UnlinkAppCallback) {

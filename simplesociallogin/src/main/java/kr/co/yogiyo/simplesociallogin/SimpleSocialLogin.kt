@@ -85,6 +85,15 @@ object SimpleSocialLogin {
     }
 
     @JvmStatic
+    fun logout(socialType: String) {
+        if (socialType == PlatformType.NAVER.name.toLowerCase()) {
+            (moduleMap[PlatformType.NAVER] as NaverLogin?)?.logout()
+        } else if (socialType == PlatformType.KAKAO.name.toLowerCase()) {
+            (moduleMap[PlatformType.KAKAO] as KakaoLogin?)?.logout()
+        }
+    }
+
+    @JvmStatic
     fun refreshAccessToken(context: Context, socialType: String, callback: RefreshTokenCallback) {
         if (socialType == PlatformType.NAVER.name.toLowerCase()) {
             (moduleMap[PlatformType.NAVER] as NaverLogin?)?.refreshAccessToken(context, callback)
