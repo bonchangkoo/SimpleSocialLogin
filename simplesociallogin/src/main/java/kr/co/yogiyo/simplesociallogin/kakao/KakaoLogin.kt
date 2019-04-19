@@ -35,15 +35,12 @@ class KakaoLogin(activity: Activity) : SocialLogin(activity) {
     override fun login() {
         kakaoSDKAdapter = null
 
-        logout()
-
         checkSession()
-
-        val session = Session.getCurrentSession()
-
-        session.addCallback(sessionCallback)
-        if (!session.checkAndImplicitOpen()) {
-            session.open(AuthType.KAKAO_TALK, activity)
+        Session.getCurrentSession().apply {
+            addCallback(sessionCallback)
+            if (!checkAndImplicitOpen()) {
+                open(AuthType.KAKAO_TALK, activity)
+            }
         }
     }
 
@@ -58,13 +55,11 @@ class KakaoLogin(activity: Activity) : SocialLogin(activity) {
     override fun logout() {
         checkSession()
 
-        if (Session.getCurrentSession().checkAndImplicitOpen()) {
-            Session.getCurrentSession().appCache.clearAll()
-            Session.getCurrentSession().removeCallback(sessionCallback)
-            Session.getCurrentSession().close()
+        Session.getCurrentSession().apply {
+            if (checkAndImplicitOpen()) {
+                close()
+            }
         }
-
-        kakaoSDKAdapter = null
     }
 
     override fun unlinkApp(callback: UnlinkAppCallback) {
