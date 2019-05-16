@@ -36,7 +36,7 @@ class NaverLogin constructor(activity: Activity) : SocialLogin(activity) {
     override fun logout() {
         Flowable.just("")
                 .map {
-                    oAuthLoginInstance.logoutAndDeleteToken(activity)
+                    oAuthLoginInstance.logout(activity)
                 }
                 .subscribeOn(Schedulers.io())
                 .subscribe({
